@@ -9,19 +9,40 @@
                     v-model="searchQuery"
                 />
             </div>
-        <!-- <div class="filter"> 
-            <h1>filter</h1>
-        </div> -->
+        <div class="filter-container">
+            <div class="filter"> 
+                <h1>filter</h1>
+            </div>
+            <button class="modal-button" @click="openModal">Open Modal</button>
+        </div>
         </div>
 
         <List />
+        
+        <Modal :is-open="isModalOpen" title="Sample Modal" @close="closeModal">
+            <div>
+                <p>This is a sample modal content. You can customize this content as needed.</p>
+                <p>The modal is created as a reusable base component that can be used throughout the application.</p>
+            </div>
+        </Modal>
     </main>
 </template>
 
 <script setup>
 import { ref } from 'vue';
 import List from '../base/List.vue';
+import Modal from '../base/Modal.vue';
+
 const searchQuery = ref('');
+const isModalOpen = ref(false);
+
+const openModal = () => {
+    isModalOpen.value = true;
+};
+
+const closeModal = () => {
+    isModalOpen.value = false;
+};
 </script>
 
 <style scoped>
@@ -68,9 +89,31 @@ const searchQuery = ref('');
 }
 
 
-.filter {
+.filter-container {
+    display: flex;
+    align-items: center;
+    gap: 15px;
     width: 100%;
+}
+
+.filter {
+    flex: 1;
     background-color: aqua;
+}
+
+.modal-button {
+    padding: 8px 16px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.2s;
+}
+
+.modal-button:hover {
+    background-color: #45a049;
 }
 
 </style>
