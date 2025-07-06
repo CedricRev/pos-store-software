@@ -18,12 +18,12 @@
 </template>
 
 <script setup lang="ts">
-const props = defineProps({
-  items: {
-    type: Array as () => Array<{ name: string; image: string; hasBarcode: boolean }>,
-    default: () => [],
-  }
-});
+// const props = defineProps({
+//   items: {
+//     type: Array as () => Array<{ name: string; image: string; hasBarcode: boolean }>,
+//     default: () => [],
+//   }
+// });
 
 const emit = defineEmits(['barcode-toggle']);
 
