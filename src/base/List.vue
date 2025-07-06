@@ -25,6 +25,8 @@
 //   }
 // });
 
+const items: any[] = []
+
 const emit = defineEmits(['barcode-toggle']);
 
 function onBarcodeToggle(idx: number, event: Event) {
