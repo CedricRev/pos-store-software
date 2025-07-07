@@ -5,32 +5,30 @@
       :key="idx"
       class="list-row"
     >
-      <img :src="item.image" alt="product" class="product-img" />
-      <span class="product-name">{{ item.name }}</span>
-      <input
-        type="checkbox"
-        class="barcode-checkbox"
-        :checked="item.hasBarcode"
-        @change="onBarcodeToggle(idx, $event)"
-      />
+      <img :src="item.thumbnail" alt="product" class="product-img" />
+      <div class="item-details">
+        <span class="product-name">{{ item.displayname }}</span>
+        <span class="product-price">₱{{ item.price }}</span>
+      </div>
+      <button class="add-item-button" @click="openQuantityModal(item)">
+        Add Item
+      </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-// const props = defineProps({
-//   items: {
-//     type: Array as () => Array<{ name: string; image: string; hasBarcode: boolean }>,
-//     default: () => [],
-//   }
-// });
+defineProps({
+  items: {
+    type: Array as () => Array<{ id: string; displayname: string; thumbnail: string; price: number; categories: string[] }>,
+    default: () => [],
+  }
+});
 
-const items: any[] = []
+const emit = defineEmits(['open-quantity-modal']);
 
-const emit = defineEmits(['barcode-toggle']);
-
-function onBarcodeToggle(idx: number, event: Event) {
-  emit('barcode-toggle', { idx, checked: (event.target as HTMLInputElement).checked });
+function openQuantityModal(item: { id: string; displayname: string; thumbnail: string; price: number; categories: string[] }) {
+  emit('open-quantity-modal', item);
 }
 </script>
 
@@ -49,22 +47,45 @@ function onBarcodeToggle(idx: number, event: Event) {
   align-items: center;
   padding: 0.5em 1em;
   border-bottom: 1px solid #eee;
+  gap: 15px;
 }
 .product-img {
   width: 48px;
   height: 48px;
   object-fit: cover;
   border-radius: 8px;
-  margin-right: 1em;
-  background: #eee;
+  background: #CABDBD;
+  flex-shrink: 0;
+}
+.item-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 .product-name {
-  flex: 1;
   font-size: 1.1em;
   color: #333;
+  font-weight: 500;
 }
-.barcode-checkbox {
-  width: 20px;
-  height: 20px;
+.product-price {
+  font-size: 0.9em;
+  color: #275829;
+  font-weight: 600;
+}
+.add-item-button {
+  padding: 8px 16px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
+  flex-shrink: 0;
+}
+
+.add-item-button:hover {
+  background-color: #45a049;
 }
 </style>
