@@ -1,6 +1,16 @@
 <script setup lang="ts">
 import MainSection from "./layout/MainSection.vue";
 import SidebarSection from "./layout/SidebarSection.vue";
+import { onMounted } from "vue";
+import { enable } from "@tauri-apps/plugin-autostart";
+
+onMounted(async () => {
+  try {
+    await enable();
+  } catch (e) {
+    console.error('Failed to enable autostart:', e);
+  }
+})
 </script>
 
 <template>
