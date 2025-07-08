@@ -1,6 +1,6 @@
 [package]
 name = "rgj-caravan-rtw"
-version = "0.0.5"
+version = "0.1.1"
 description = "POS Application for Amporinguez store."
 authors = ["CedricRev"]
 edition = "2021"
