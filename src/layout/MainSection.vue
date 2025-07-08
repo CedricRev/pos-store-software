@@ -17,6 +17,7 @@
                 </div>
             </div>
             <button class="modal-button" @click="openModal">Filter Categories</button>
+            <button class="modal-button add-item-btn" @click="openAddItemModal">Add Item</button>
         </div>
         </div>
 
@@ -80,21 +81,82 @@
                 </div>
             </div>
         </Modal>
+
+        <Modal :is-open="isAddItemModalOpen" title="Add New" @close="closeAddItemModal">
+            <div class="add-toggle">
+                <button :class="{active: addMode === 'item'}" @click="addMode = 'item'">Add Item</button>
+                <button :class="{active: addMode === 'category'}" @click="addMode = 'category'">Add Category</button>
+            </div>
+            <div v-if="addMode === 'item'" class="add-item-form">
+                <label>Name: <input v-model="newItem.displayname" type="text" /></label>
+                <label>Price: <input v-model.number="newItem.price" type="number" min="0" /></label>
+                <label>Thumbnail: <input v-model="newItem.thumbnail" type="text" placeholder="Image path or URL" /></label>
+                <label>Categories:
+                    <div class="category-list">
+                        <div v-for="category in categories" :key="category.id">
+                            <input type="checkbox" :value="category.id" v-model="newItem.categories" />
+                            <span>{{ category.displayname }}</span>
+                        </div>
+                    </div>
+                </label>
+                <div class="modal-actions">
+                    <button @click="closeAddItemModal" class="cancel-button">Cancel</button>
+                    <button @click="submitNew" class="add-button">Add</button>
+                </div>
+            </div>
+            <div v-else class="add-item-form">
+                <label>Name: <input v-model="newCategory.displayname" type="text" /></label>
+                <label>Thumbnail: <input v-model="newCategory.thumbnail" type="text" placeholder="Image path or URL" /></label>
+                <div class="modal-actions">
+                    <button @click="closeAddItemModal" class="cancel-button">Cancel</button>
+                    <button @click="submitNew" class="add-button">Add</button>
+                </div>
+            </div>
+        </Modal>
     </main>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import List from '../base/List.vue';
 import Modal from '../base/Modal.vue';
-import { categories, items } from '../scripts/sampledb';
+// import { categories, items } from '../scripts/sampledb';
+import { getCategories, getItems, addItem, initDb, addCategory } from '../scripts/sqlite';
 
 const searchQuery = ref('');
 const isModalOpen = ref(false);
 const isQuantityModalOpen = ref(false);
+const isAddItemModalOpen = ref(false);
 const selectedCategories = ref<string[]>([]);
 const selectedItem = ref<any>(null);
 const quantity = ref(1);
+
+const categories = ref<any[]>([]);
+const items = ref<any[]>([]);
+
+const newItem = ref({
+    displayname: '',
+    price: 0,
+    thumbnail: '',
+    categories: [] as string[],
+});
+
+const addMode = ref<'item' | 'category'>('item');
+
+const newCategory = ref({
+    displayname: '',
+    thumbnail: '',
+});
+
+async function refreshData() {
+    categories.value = await getCategories();
+    items.value = await getItems();
+}
+
+onMounted(async () => {
+    await initDb();
+    await refreshData();
+});
 
 const openModal = () => {
     isModalOpen.value = true;
@@ -102,6 +164,51 @@ const openModal = () => {
 
 const closeModal = () => {
     isModalOpen.value = false;
+};
+
+const openAddItemModal = () => {
+    isAddItemModalOpen.value = true;
+    addMode.value = 'item';
+    newItem.value = {
+        displayname: '',
+        price: 0,
+        thumbnail: '',
+        categories: [],
+    };
+    newCategory.value = {
+        displayname: '',
+        thumbnail: '',
+    };
+};
+
+const closeAddItemModal = () => {
+    isAddItemModalOpen.value = false;
+};
+
+const submitNew = async () => {
+    if (addMode.value === 'item') {
+        if (!newItem.value.displayname || newItem.value.price <= 0) return;
+        const id = Math.random().toString(36).substr(2, 9);
+        await addItem({
+            id,
+            displayname: newItem.value.displayname,
+            price: newItem.value.price,
+            thumbnail: newItem.value.thumbnail,
+            categories: newItem.value.categories,
+        });
+        await refreshData();
+        closeAddItemModal();
+    } else {
+        if (!newCategory.value.displayname) return;
+        const id = Math.random().toString(36).substr(2, 9);
+        await addCategory({
+            id,
+            displayname: newCategory.value.displayname,
+            thumbnail: newCategory.value.thumbnail,
+        });
+        await refreshData();
+        closeAddItemModal();
+    }
 };
 
 const openQuantityModal = (item: any) => {
@@ -118,8 +225,6 @@ const closeQuantityModal = () => {
 
 const addToCart = () => {
     if (selectedItem.value && quantity.value > 0) {
-        // Emit event to parent component to handle cart updates
-        // This will be handled by the parent App.vue
         window.dispatchEvent(new CustomEvent('add-to-cart', {
             detail: {
                 item: selectedItem.value,
@@ -140,29 +245,24 @@ const toggleCategory = (categoryId: string) => {
 };
 
 const filteredItems = computed(() => {
-    let filtered = items;
-    
-    // First filter by selected categories
+    let filtered = items.value;
     if (selectedCategories.value.length > 0) {
         filtered = filtered.filter(item => 
-            item.categories.some(catId => selectedCategories.value.includes(catId))
+            item.categories.some((catId: string) => selectedCategories.value.includes(catId))
         );
     }
-    
-    // Then filter by search query
     if (searchQuery.value.trim()) {
         const query = searchQuery.value.toLowerCase().trim();
         filtered = filtered.filter(item => 
             item.displayname.toLowerCase().includes(query)
         );
     }
-    
     return filtered;
 });
 
 const selectedCategoryNames = computed(() => {
     return selectedCategories.value.map(id => 
-        categories.find(cat => cat.id === id)?.displayname
+        categories.value.find((cat: any) => cat.id === id)?.displayname
     ).filter(Boolean);
 });
 </script>
@@ -470,4 +570,42 @@ const selectedCategoryNames = computed(() => {
     background-color: #45a049;
 }
 
+.add-item-btn {
+    background-color: #2196F3;
+    margin-left: 10px;
+}
+.add-item-btn:hover {
+    background-color: #1976D2;
+}
+.add-item-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.add-item-form label {
+    display: flex;
+    flex-direction: column;
+    font-size: 1rem;
+    color: #333;
+}
+.add-toggle {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+.add-toggle button {
+    flex: 1;
+    padding: 8px 0;
+    border: none;
+    border-radius: 6px;
+    background: #eee;
+    color: #333;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.add-toggle button.active {
+    background: #4CAF50;
+    color: #fff;
+}
 </style>
