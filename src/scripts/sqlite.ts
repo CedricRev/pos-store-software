@@ -1,6 +1,6 @@
 import Database from '@tauri-apps/plugin-sql';
 
-const DB_PATH = 'sqlite:pos-store.db';
+const DB_PATH = 'sqlite:pos-store-2.db';
 
 let dbPromise: Promise<any> | null = null;
 
@@ -17,8 +17,7 @@ export async function initDb() {
     await db.execute(`
         CREATE TABLE IF NOT EXISTS categories (
             id TEXT PRIMARY KEY,
-            displayname TEXT NOT NULL,
-            thumbnail TEXT
+            displayname TEXT NOT NULL
         )
     `);
     await db.execute(`
@@ -26,7 +25,6 @@ export async function initDb() {
             id TEXT PRIMARY KEY,
             displayname TEXT NOT NULL,
             price REAL NOT NULL,
-            thumbnail TEXT,
             categories TEXT -- JSON array of category ids
         )
     `);
@@ -37,19 +35,19 @@ export async function getCategories() {
     return await db.select(`SELECT * FROM categories`);
 }
 
-export async function addCategory(category: {id: string, displayname: string, thumbnail: string}) {
+export async function addCategory(category: {id: string, displayname: string}) {
     const db = await getDb();
     await db.execute(
-        `INSERT INTO categories (id, displayname, thumbnail) VALUES (?, ?, ?)`,
-        [category.id, category.displayname, category.thumbnail]
+        `INSERT INTO categories (id, displayname) VALUES (?, ?)`,
+        [category.id, category.displayname]
     );
 }
 
-export async function updateCategory(category: {id: string, displayname: string, thumbnail: string}) {
+export async function updateCategory(category: {id: string, displayname: string}) {
     const db = await getDb();
     await db.execute(
-        `UPDATE categories SET displayname = ?, thumbnail = ? WHERE id = ?`,
-        [category.displayname, category.thumbnail, category.id]
+        `UPDATE categories SET displayname = ? WHERE id = ?`,
+        [category.displayname, category.id]
     );
 }
 
@@ -68,19 +66,19 @@ export async function getItems() {
     }));
 }
 
-export async function addItem(item: {id: string, displayname: string, price: number, thumbnail: string, categories: string[]}) {
+export async function addItem(item: {id: string, displayname: string, price: number, categories: string[]}) {
     const db = await getDb();
     await db.execute(
-        `INSERT INTO items (id, displayname, price, thumbnail, categories) VALUES (?, ?, ?, ?, ?)`,
-        [item.id, item.displayname, item.price, item.thumbnail, JSON.stringify(item.categories)]
+        `INSERT INTO items (id, displayname, price, categories) VALUES (?, ?, ?, ?)`,
+        [item.id, item.displayname, item.price, JSON.stringify(item.categories)]
     );
 }
 
-export async function updateItem(item: {id: string, displayname: string, price: number, thumbnail: string, categories: string[]}) {
+export async function updateItem(item: {id: string, displayname: string, price: number, categories: string[]}) {
     const db = await getDb();
     await db.execute(
-        `UPDATE items SET displayname = ?, price = ?, thumbnail = ?, categories = ? WHERE id = ?`,
-        [item.displayname, item.price, item.thumbnail, JSON.stringify(item.categories), item.id]
+        `UPDATE items SET displayname = ?, price = ?, categories = ? WHERE id = ?`,
+        [item.displayname, item.price, JSON.stringify(item.categories), item.id]
     );
 }
 

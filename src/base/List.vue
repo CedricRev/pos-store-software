@@ -5,30 +5,69 @@
       :key="idx"
       class="list-row"
     >
-      <img :src="item.thumbnail" alt="product" class="product-img" />
-      <div class="item-details">
-        <span class="product-name">{{ item.displayname }}</span>
-        <span class="product-price">₱{{ item.price }}</span>
+      <div class="item-details-horizontal">
+        <template v-if="editMode">
+          <input
+            class="product-name-input name-flex"
+            type="text"
+            v-model="item.displayname"
+            @change="$emit('update-item', { ...item })"
+          />
+          <input
+            class="product-price-input price-flex"
+            type="number"
+            min="0"
+            v-model.number="item.price"
+            @change="$emit('update-item', { ...item })"
+          />
+        </template>
+        <template v-else>
+          <span class="product-name name-flex">{{ item.displayname }}</span>
+          <span class="product-price price-flex">₱{{ item.price }}</span>
+        </template>
+        <div class="item-categories categories-flex">
+          <span v-for="catId in item.categories" :key="catId" class="category-tag">
+            {{ getCategoryName(catId) }}
+          </span>
+        </div>
       </div>
-      <button class="add-item-button" @click="openQuantityModal(item)">
-        Add Item
-      </button>
+      <div class="item-actions">
+        <button class="add-item-button" @click="openQuantityModal(item)" v-if="!editMode">
+          Add Item
+        </button>
+        <template v-if="editMode">
+          <button class="delete-item-button" @click="$emit('delete-item', item)">Delete</button>
+        </template>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-defineProps({
+const props = defineProps({
   items: {
-    type: Array as () => Array<{ id: string; displayname: string; thumbnail: string; price: number; categories: string[] }>,
+    type: Array as () => Array<{ id: string; displayname: string; price: number; categories: string[] }>,
     default: () => [],
+  },
+  categories: {
+    type: Array as () => Array<{ id: string; displayname: string }>,
+    default: () => [],
+  },
+  editMode: {
+    type: Boolean,
+    default: false,
   }
 });
 
-const emit = defineEmits(['open-quantity-modal']);
+const emit = defineEmits(['open-quantity-modal', 'edit-item', 'delete-item', 'update-item']);
 
-function openQuantityModal(item: { id: string; displayname: string; thumbnail: string; price: number; categories: string[] }) {
+function openQuantityModal(item: { id: string; displayname: string; price: number; categories: string[] }) {
   emit('open-quantity-modal', item);
+}
+
+function getCategoryName(catId: string) {
+  const cat = props.categories.find((c: any) => c.id === catId);
+  return cat ? cat.displayname : catId;
 }
 </script>
 
@@ -44,10 +83,10 @@ function openQuantityModal(item: { id: string; displayname: string; thumbnail: s
 }
 .list-row {
   display: flex;
-  align-items: center;
-  padding: 0.5em 1em;
+  align-items: stretch;
+  padding: 0.2em 0.5em;
   border-bottom: 1px solid #eee;
-  gap: 15px;
+  gap: 8px;
 }
 .product-img {
   width: 48px;
@@ -57,11 +96,48 @@ function openQuantityModal(item: { id: string; displayname: string; thumbnail: s
   background: #CABDBD;
   flex-shrink: 0;
 }
-.item-details {
-  flex: 1;
+.item-details-horizontal {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  flex: 1;
+  gap: 0;
+}
+.name-flex {
+  flex: 2;
+  min-width: 120px;
+  margin-right: 10px;
+}
+.price-flex {
+  flex: 1;
+  min-width: 80px;
+  margin-right: 10px;
+}
+.categories-flex {
+  flex: 2;
+  min-width: 120px;
+  display: flex;
+  gap: 6px;
+}
+.item-actions {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  gap: 8px;
+}
+.item-categories {
+  display: flex;
+  gap: 6px;
+}
+.category-tag {
+  background-color: #4CAF50;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  display: inline-block;
+}
+.item-details {
+  display: none;
 }
 .product-name {
   font-size: 1.1em;
@@ -87,5 +163,51 @@ function openQuantityModal(item: { id: string; displayname: string; thumbnail: s
 
 .add-item-button:hover {
   background-color: #45a049;
+}
+.edit-item-button {
+  margin-left: 8px;
+  background-color: #FFC107;
+  color: #333;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
+}
+.edit-item-button:hover {
+  background-color: #FF9800;
+  color: #fff;
+}
+.delete-item-button {
+  margin-left: 8px;
+  background-color: #f44336;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
+}
+.delete-item-button:hover {
+  background-color: #d32f2f;
+}
+.product-name-input {
+  font-size: 1.1em;
+  color: #333;
+  font-weight: 500;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 4px 8px;
+  margin-bottom: 4px;
+}
+.product-price-input {
+  font-size: 0.9em;
+  color: #275829;
+  font-weight: 600;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 4px 8px;
 }
 </style>

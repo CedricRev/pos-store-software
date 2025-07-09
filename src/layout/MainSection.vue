@@ -1,118 +1,68 @@
 <template>
     <main class="main-section">
         <div class="header">
-            <div class="search-bar-container">
-                <input type="text" class="search-bar" placeholder="Search for product..." v-model="searchQuery"/>
-            </div>
-        <div class="categories-panel">
-            <div class="categories"> 
-                <h3>Selected Categories:</h3>
-                <div v-if="selectedCategoryNames.length > 0" class="selected-categories">
-                    <span v-for="categoryName in selectedCategoryNames" :key="categoryName" class="category-tag">
-                        {{ categoryName }}
-                    </span>
+            <div class="header-row">
+                <div class="search-bar-container">
+                    <input type="text" class="search-bar" placeholder="Search for product..." v-model="searchQuery"/>
                 </div>
-                <div v-else class="no-categories">
-                    <p>Open the button to filter by categories</p>
+                <div class="edit-toggle-container">
+                    <button v-if="editMode" class="modal-button add-item-btn" @click="openAddItemModal('item')">Add Item</button>
+                    <button v-if="editMode" class="modal-button add-category-btn" @click="openAddItemModal('category')">Add Category</button>
+                    <button class="edit-toggle-btn" :class="{active: editMode}" @click="editMode = !editMode">
+                        {{ editMode ? 'Exit Edit Mode' : 'Enter Edit Mode' }}
+                    </button>
                 </div>
             </div>
-            <button class="modal-button" @click="openModal">Filter Categories</button>
-            <button class="modal-button add-item-btn" @click="openAddItemModal">Add Item</button>
+            <div class="categories-panel">
+                <div class="categories"> 
+                    <div class="all-categories">
+                    <template v-for="category in categories" :key="category.id">
+                        <span v-if="!editMode"
+                            class="category-tag"
+                            :class="{ selected: selectedCategories.includes(category.id) }"
+                            @click="toggleCategory(category.id)">
+                        {{ category.displayname }}
+                        </span>
+                        <span v-else class="category-tag edit-mode">
+                        <input class="category-name-input" v-model="category.displayname" @change="updateCategoryInline(category)" />
+                        <button class="delete-category-btn" @click="deleteCategoryInline(category)">Delete</button>
+                        </span>
+                    </template>
+                    </div>
+                </div>
+            </div>
         </div>
-        </div>
 
-        <List :items="filteredItems" @open-quantity-modal="openQuantityModal" />
-        
-        <Modal :is-open="isModalOpen" title="Filter by Categories" @close="closeModal">
-            <div class="category-selection">
-                <h4>Select categories to filter items:</h4>
-                <div class="category-list">
-                    <div 
-                        v-for="category in categories" 
-                        :key="category.id"
-                        class="category-item"
-                        :class="{ 'selected': selectedCategories.includes(category.id) }"
-                        @click="toggleCategory(category.id)"
-                    >
-                        <input 
-                            type="checkbox" 
-                            :checked="selectedCategories.includes(category.id)"
-                            @change="toggleCategory(category.id)"
-                        />
-                        <span>{{ category.displayname }}</span>
-                    </div>
-                </div>
-                <div class="modal-actions">
-                    <button @click="selectedCategories = []" class="clear-button">Clear All</button>
-                    <button @click="closeModal" class="apply-button">Apply Filter</button>
-                </div>
-            </div>
-        </Modal>
+        <List :items="filteredItems" :categories="categories" @open-quantity-modal="openQuantityModal" :edit-mode="editMode" 
+              @update-item="updateItemInline" 
+              @delete-item="deleteItemInline" />
 
-        <Modal :is-open="isQuantityModalOpen" title="Add Item to Cart" @close="closeQuantityModal">
-            <div class="quantity-selection" v-if="selectedItem">
-                <div class="item-info">
-                    <img :src="selectedItem.thumbnail" alt="product" class="modal-product-img" />
-                    <div class="item-details">
-                        <h4>{{ selectedItem.displayname }}</h4>
-                        <p class="price">₱{{ selectedItem.price }}</p>
-                    </div>
-                </div>
-                <div class="quantity-controls">
-                    <label for="quantity">Quantity:</label>
-                    <div class="quantity-input">
-                        <button @click="quantity > 1 ? quantity-- : null" class="qty-btn">-</button>
-                        <input 
-                            type="number" 
-                            id="quantity"
-                            v-model="quantity" 
-                            min="1" 
-                            class="quantity-field"
-                        />
-                        <button @click="quantity++" class="qty-btn">+</button>
-                    </div>
-                </div>
-                <div class="total-preview">
-                    <p>Total: ₱{{ (selectedItem.price * quantity).toFixed(2) }}</p>
-                </div>
-                <div class="modal-actions">
-                    <button @click="closeQuantityModal" class="cancel-button">Cancel</button>
-                    <button @click="addToCart" class="add-button">Add Item</button>
-                </div>
-            </div>
-        </Modal>
+        <ItemToCart
+            :is-open="isQuantityModalOpen"
+            :item="selectedItem"
+            :quantity="quantity"
+            :edit-mode="editMode"
+            @update:quantity="(val: number) => quantity = val"
+            @close="closeQuantityModal"
+            @add-to-cart="addToCart"
+        />
 
-        <Modal :is-open="isAddItemModalOpen" title="Add New" @close="closeAddItemModal">
-            <div class="add-toggle">
-                <button :class="{active: addMode === 'item'}" @click="addMode = 'item'">Add Item</button>
-                <button :class="{active: addMode === 'category'}" @click="addMode = 'category'">Add Category</button>
-            </div>
-            <div v-if="addMode === 'item'" class="add-item-form">
-                <label>Name: <input v-model="newItem.displayname" type="text" /></label>
-                <label>Price: <input v-model.number="newItem.price" type="number" min="0" /></label>
-                <label>Thumbnail: <input v-model="newItem.thumbnail" type="text" placeholder="Image path or URL" /></label>
-                <label>Categories:
-                    <div class="category-list">
-                        <div v-for="category in categories" :key="category.id">
-                            <input type="checkbox" :value="category.id" v-model="newItem.categories" />
-                            <span>{{ category.displayname }}</span>
-                        </div>
-                    </div>
-                </label>
-                <div class="modal-actions">
-                    <button @click="closeAddItemModal" class="cancel-button">Cancel</button>
-                    <button @click="submitNew" class="add-button">Add</button>
-                </div>
-            </div>
-            <div v-else class="add-item-form">
-                <label>Name: <input v-model="newCategory.displayname" type="text" /></label>
-                <label>Thumbnail: <input v-model="newCategory.thumbnail" type="text" placeholder="Image path or URL" /></label>
-                <div class="modal-actions">
-                    <button @click="closeAddItemModal" class="cancel-button">Cancel</button>
-                    <button @click="submitNew" class="add-button">Add</button>
-                </div>
-            </div>
-        </Modal>
+        <ErrorPopup :message="errorMessage" :show="errorShow" @hide="hideError" />
+        <AddItem
+            v-if="editMode && isAddItemModalOpen && addMode === 'item'"
+            :is-open="isAddItemModalOpen"
+            :categories="categories"
+            @close="closeAddItemModal"
+            @add="onAddItem"
+            @error="showError"
+        />
+        <AddCategory
+            v-if="editMode && isAddItemModalOpen && addMode === 'category'"
+            :is-open="isAddItemModalOpen"
+            @close="closeAddItemModal"
+            @add="onAddCategory"
+            @error="showError"
+        />
     </main>
 </template>
 
@@ -120,8 +70,12 @@
 import { ref, computed, onMounted } from 'vue';
 import List from '../base/List.vue';
 import Modal from '../base/Modal.vue';
+import ItemToCart from '../components/ItemToCart.vue';
+import AddItem from '../components/AddItem.vue';
+import AddCategory from '../components/AddCategory.vue';
+import ErrorPopup from '../components/ErrorPopup.vue';
 // import { categories, items } from '../scripts/sampledb';
-import { getCategories, getItems, addItem, initDb, addCategory } from '../scripts/sqlite';
+import { getCategories, getItems, addItem, initDb, addCategory, deleteItem, addCategory as upsertCategory, deleteCategory } from '../scripts/sqlite';
 
 const searchQuery = ref('');
 const isModalOpen = ref(false);
@@ -137,7 +91,6 @@ const items = ref<any[]>([]);
 const newItem = ref({
     displayname: '',
     price: 0,
-    thumbnail: '',
     categories: [] as string[],
 });
 
@@ -145,8 +98,19 @@ const addMode = ref<'item' | 'category'>('item');
 
 const newCategory = ref({
     displayname: '',
-    thumbnail: '',
 });
+
+const editMode = ref(false);
+
+const errorMessage = ref('');
+const errorShow = ref(false);
+function showError(msg: string) {
+  errorMessage.value = msg;
+  errorShow.value = true;
+}
+function hideError() {
+  errorShow.value = false;
+}
 
 async function refreshData() {
     categories.value = await getCategories();
@@ -166,18 +130,16 @@ const closeModal = () => {
     isModalOpen.value = false;
 };
 
-const openAddItemModal = () => {
+const openAddItemModal = (mode: 'item' | 'category') => {
     isAddItemModalOpen.value = true;
-    addMode.value = 'item';
+    addMode.value = mode;
     newItem.value = {
         displayname: '',
         price: 0,
-        thumbnail: '',
         categories: [],
     };
     newCategory.value = {
         displayname: '',
-        thumbnail: '',
     };
 };
 
@@ -193,7 +155,6 @@ const submitNew = async () => {
             id,
             displayname: newItem.value.displayname,
             price: newItem.value.price,
-            thumbnail: newItem.value.thumbnail,
             categories: newItem.value.categories,
         });
         await refreshData();
@@ -204,7 +165,6 @@ const submitNew = async () => {
         await addCategory({
             id,
             displayname: newCategory.value.displayname,
-            thumbnail: newCategory.value.thumbnail,
         });
         await refreshData();
         closeAddItemModal();
@@ -265,6 +225,42 @@ const selectedCategoryNames = computed(() => {
         categories.value.find((cat: any) => cat.id === id)?.displayname
     ).filter(Boolean);
 });
+
+async function updateItemInline(item: any) {
+    // If you have an updateItem function, use it. Otherwise, use addItem as an upsert.
+    await addItem(item);
+    await refreshData();
+}
+
+async function deleteItemInline(item: any) {
+    if (typeof deleteItem === 'function') {
+        await deleteItem(item.id);
+        await refreshData();
+    }
+}
+
+async function updateCategoryInline(category: any) {
+    // Use upsertCategory (addCategory) as update if no updateCategory exists
+    await upsertCategory(category);
+    await refreshData();
+}
+async function deleteCategoryInline(category: any) {
+    if (typeof deleteCategory === 'function') {
+        await deleteCategory(category.id);
+        await refreshData();
+    }
+}
+
+function onAddItem(item: { displayname: string; price: number; categories: string[] }) {
+    const id = Math.random().toString(36).substr(2, 9);
+    addItem({ id, ...item }).then(refreshData);
+    closeAddItemModal();
+}
+function onAddCategory(category: { displayname: string }) {
+    const id = Math.random().toString(36).substr(2, 9);
+    addCategory({ id, ...category }).then(refreshData);
+    closeAddItemModal();
+}
 </script>
 
 <style scoped>
@@ -286,11 +282,16 @@ const selectedCategoryNames = computed(() => {
     padding: 20px;
 }
 
-.search-bar-container {
-    width: 100%;
-    box-sizing: border-box;
+.header-row {
+    display: flex;
+    align-items: center;
+    gap: 20px;
 }
-
+.search-bar-container {
+    flex: 1;
+    min-width: 200px;
+    /* max-width: 400px; */
+}
 .search-bar {
     width: 100%;
     padding: 8px 12px;
@@ -300,7 +301,6 @@ const selectedCategoryNames = computed(() => {
     background-color: #797878;
     border: none;
 }
-
 .search-bar::placeholder {
     color: #fff;
     opacity: 0.6;
@@ -346,17 +346,6 @@ const selectedCategoryNames = computed(() => {
     border: 1px solid #ddd;
 }
 
-.categories h3 {
-    margin: 0 0 10px 0;
-    font-size: 1rem;
-    color: #333;
-}
-
-.selected-categories {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-}
 
 .category-tag {
     background-color: #4CAF50;
@@ -365,16 +354,6 @@ const selectedCategoryNames = computed(() => {
     border-radius: 12px;
     font-size: 0.8rem;
     display: inline-block;
-}
-
-.no-categories {
-    color: #666;
-    font-style: italic;
-}
-
-.no-categories p {
-    margin: 0;
-    font-size: 0.9rem;
 }
 
 .category-selection {
@@ -607,5 +586,68 @@ const selectedCategoryNames = computed(() => {
 .add-toggle button.active {
     background: #4CAF50;
     color: #fff;
+}
+.edit-toggle-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: auto;
+}
+.edit-toggle-btn {
+    padding: 8px 16px;
+    background-color: #FFC107;
+    color: #333;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.2s;
+}
+.edit-toggle-btn.active {
+    background-color: #FF9800;
+    color: #fff;
+}
+.all-categories {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+.category-tag.selected {
+    background-color: #1976D2;
+    color: #fff;
+}
+.category-tag.edit-mode {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background-color: #FFC107;
+    color: #333;
+}
+.category-name-input {
+    font-size: 1em;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 2px 6px;
+    width: 100px;
+}
+.delete-category-btn {
+    background-color: #f44336;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 2px 8px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: background-color 0.2s;
+}
+.delete-category-btn:hover {
+    background-color: #d32f2f;
+}
+.add-category-btn {
+    background-color: #2196F3;
+}
+.add-category-btn:hover {
+    background-color: #1976D2;
 }
 </style>

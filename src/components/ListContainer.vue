@@ -13,7 +13,6 @@
                     class="cart-item"
                 >
                     <div class="item-info">
-                        <img :src="cartItem.item.thumbnail" alt="product" class="cart-item-img" />
                         <div class="item-details">
                             <span class="item-name">{{ cartItem.item.displayname }}</span>
                             <span class="item-price">₱{{ cartItem.item.price }} x {{ cartItem.quantity }}</span>
@@ -44,7 +43,6 @@ interface CartItem {
     item: {
         id: string;
         displayname: string;
-        thumbnail: string;
         price: number;
         categories: string[];
     };
