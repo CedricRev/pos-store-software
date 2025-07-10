@@ -69,7 +69,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import List from '../base/List.vue';
-import Modal from '../base/Modal.vue';
 import ItemToCart from '../components/ItemToCart.vue';
 import AddItem from '../components/AddItem.vue';
 import AddCategory from '../components/AddCategory.vue';
@@ -122,13 +121,13 @@ onMounted(async () => {
     await refreshData();
 });
 
-const openModal = () => {
-    isModalOpen.value = true;
-};
+// const openModal = () => {
+//     isModalOpen.value = true;
+// };
 
-const closeModal = () => {
-    isModalOpen.value = false;
-};
+// const closeModal = () => {
+//     isModalOpen.value = false;
+// };
 
 const openAddItemModal = (mode: 'item' | 'category') => {
     isAddItemModalOpen.value = true;
@@ -147,29 +146,29 @@ const closeAddItemModal = () => {
     isAddItemModalOpen.value = false;
 };
 
-const submitNew = async () => {
-    if (addMode.value === 'item') {
-        if (!newItem.value.displayname || newItem.value.price <= 0) return;
-        const id = Math.random().toString(36).substr(2, 9);
-        await addItem({
-            id,
-            displayname: newItem.value.displayname,
-            price: newItem.value.price,
-            categories: newItem.value.categories,
-        });
-        await refreshData();
-        closeAddItemModal();
-    } else {
-        if (!newCategory.value.displayname) return;
-        const id = Math.random().toString(36).substr(2, 9);
-        await addCategory({
-            id,
-            displayname: newCategory.value.displayname,
-        });
-        await refreshData();
-        closeAddItemModal();
-    }
-};
+// const submitNew = async () => {
+//     if (addMode.value === 'item') {
+//         if (!newItem.value.displayname || newItem.value.price <= 0) return;
+//         const id = Math.random().toString(36).substr(2, 9);
+//         await addItem({
+//             id,
+//             displayname: newItem.value.displayname,
+//             price: newItem.value.price,
+//             categories: newItem.value.categories,
+//         });
+//         await refreshData();
+//         closeAddItemModal();
+//     } else {
+//         if (!newCategory.value.displayname) return;
+//         const id = Math.random().toString(36).substr(2, 9);
+//         await addCategory({
+//             id,
+//             displayname: newCategory.value.displayname,
+//         });
+//         await refreshData();
+//         closeAddItemModal();
+//     }
+// };
 
 const openQuantityModal = (item: any) => {
     selectedItem.value = item;
@@ -220,11 +219,11 @@ const filteredItems = computed(() => {
     return filtered;
 });
 
-const selectedCategoryNames = computed(() => {
-    return selectedCategories.value.map(id => 
-        categories.value.find((cat: any) => cat.id === id)?.displayname
-    ).filter(Boolean);
-});
+// const selectedCategoryNames = computed(() => {
+//     return selectedCategories.value.map(id => 
+//         categories.value.find((cat: any) => cat.id === id)?.displayname
+//     ).filter(Boolean);
+// });
 
 async function updateItemInline(item: any) {
     // If you have an updateItem function, use it. Otherwise, use addItem as an upsert.
