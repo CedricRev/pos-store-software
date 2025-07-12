@@ -20,6 +20,9 @@ importers:
       '@tauri-apps/plugin-sql':
         specifier: ~2
         version: 2.3.0
+      jsbarcode:
+        specifier: ^3.12.1
+        version: 3.12.1
       vue:
         specifier: ^3.5.13
         version: 3.5.17(typescript@5.6.3)
@@ -498,6 +501,9 @@ packages:
     resolution: {integrity: sha512-F/1DnUGPopORZi0ni+CvrCgHQ5FyEAHRLSApuYWMmrbSwoN2Mn/7k+Gl38gJnR7yyDZk6WLXwiGod1JOWNDKGw==}
     hasBin: true
 
+  jsbarcode@3.12.1:
+    resolution: {integrity: sha512-QZQSqIknC2Rr/YOUyOkCBqsoiBAOTYK+7yNN3JsqfoUtJtkazxNw1dmPpxuv7VVvqW13kA3/mKiLq+s/e3o9hQ==}
+
   magic-string@0.30.17:
     resolution: {integrity: sha512-sNPKHvyjVf7gyjwS4xGTaW/mCnF8wnjtifKBEhxfZ7E/S8tQ0rssrwGNn6q8JH/ohItJfSQp9mBtQYuTlH5QnA==}
 
@@ -958,6 +964,8 @@ snapshots:
     optional: true
 
   he@1.2.0: {}
+
+  jsbarcode@3.12.1: {}
 
   magic-string@0.30.17:
     dependencies:
