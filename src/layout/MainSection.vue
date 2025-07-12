@@ -250,7 +250,7 @@ async function deleteCategoryInline(category: any) {
     }
 }
 
-function onAddItem(item: { displayname: string; price: number; categories: string[] }) {
+function onAddItem(item: { displayname: string; price: number; categories: string[]; barcode?: string }) {
     const id = Math.random().toString(36).substr(2, 9);
     addItem({ id, ...item }).then(refreshData);
     closeAddItemModal();

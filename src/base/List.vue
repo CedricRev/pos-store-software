@@ -30,6 +30,12 @@
             {{ getCategoryName(catId) }}
           </span>
         </div>
+        <div v-if="item.barcode" class="barcode-display barcode-flex">
+          <div class="barcode-container">
+            <svg :id="`barcode-${item.id}`" class="barcode-svg"></svg>
+            <div class="barcode-text">{{ item.barcode }}</div>
+          </div>
+        </div>
       </div>
       <div class="item-actions">
         <button class="add-item-button" @click="openQuantityModal(item)" v-if="!editMode">
@@ -44,9 +50,12 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted, nextTick, watch } from 'vue';
+import JsBarcode from 'jsbarcode';
+
 const props = defineProps({
   items: {
-    type: Array as () => Array<{ id: string; displayname: string; price: number; categories: string[] }>,
+    type: Array as () => Array<{ id: string; displayname: string; price: number; categories: string[]; barcode?: string }>,
     default: () => [],
   },
   categories: {
@@ -61,7 +70,7 @@ const props = defineProps({
 
 const emit = defineEmits(['open-quantity-modal', 'edit-item', 'delete-item', 'update-item']);
 
-function openQuantityModal(item: { id: string; displayname: string; price: number; categories: string[] }) {
+function openQuantityModal(item: { id: string; displayname: string; price: number; categories: string[]; barcode?: string }) {
   emit('open-quantity-modal', item);
 }
 
@@ -69,6 +78,43 @@ function getCategoryName(catId: string) {
   const cat = props.categories.find((c: any) => c.id === catId);
   return cat ? cat.displayname : catId;
 }
+
+function generateBarcode(elementId: string, barcode: string) {
+  try {
+    const element = document.getElementById(elementId);
+    if (element && element instanceof SVGElement) {
+      JsBarcode(element, barcode, {
+        format: "CODE128",
+        width: 1.5,
+        height: 30,
+        displayValue: false,
+        background: "#ffffff",
+        lineColor: "#000000",
+        margin: 2
+      });
+    }
+  } catch (error) {
+    console.error('Error generating barcode:', error);
+  }
+}
+
+async function generateAllBarcodes() {
+  await nextTick();
+  props.items.forEach(item => {
+    if (item.barcode) {
+      generateBarcode(`barcode-${item.id}`, item.barcode);
+    }
+  });
+}
+
+onMounted(async () => {
+  await generateAllBarcodes();
+});
+
+// Watch for changes in items to regenerate barcodes
+watch(() => props.items, async () => {
+  await generateAllBarcodes();
+}, { deep: true });
 </script>
 
 <style scoped>
@@ -118,6 +164,11 @@ function getCategoryName(catId: string) {
   display: flex;
   gap: 6px;
 }
+.barcode-flex {
+  flex: 1;
+  min-width: 150px;
+  margin-right: 10px;
+}
 .item-actions {
   display: flex;
   align-items: center;
@@ -135,6 +186,30 @@ function getCategoryName(catId: string) {
   border-radius: 12px;
   font-size: 0.8rem;
   display: inline-block;
+}
+.barcode-display {
+  display: flex;
+  align-items: center;
+}
+.barcode-container {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 4px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.barcode-svg {
+  width: 100%;
+  height: 35px;
+}
+.barcode-text {
+  font-size: 0.6rem;
+  font-family: monospace;
+  color: #666;
+  text-align: center;
 }
 .item-details {
   display: none;
