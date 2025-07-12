@@ -7,7 +7,7 @@
 </template>
 
 <script setup lang="ts">
-import { watch, onMounted, onBeforeUnmount } from 'vue';
+import { watch, onBeforeUnmount } from 'vue';
 const props = defineProps<{ message: string, show: boolean }>();
 const emit = defineEmits(['hide']);
 let timer: number | undefined;

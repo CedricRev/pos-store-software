@@ -77,7 +77,6 @@ import ErrorPopup from '../components/ErrorPopup.vue';
 import { getCategories, getItems, addItem, initDb, addCategory, deleteItem, addCategory as upsertCategory, deleteCategory } from '../scripts/sqlite';
 
 const searchQuery = ref('');
-const isModalOpen = ref(false);
 const isQuantityModalOpen = ref(false);
 const isAddItemModalOpen = ref(false);
 const selectedCategories = ref<string[]>([]);
