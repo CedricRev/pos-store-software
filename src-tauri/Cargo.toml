@@ -1,7 +1,7 @@
 [package]
 name = "rgj-caravan-rtw"
-version = "0.1.1"
-description = "POS Application for Amporinguez store."
+version = "0.1.2"
+description = "Point of Sale desktop software for RGJ Caravan RTW. Made with Tauri and Vue.js."
 authors = ["CedricRev"]
 edition = "2021"
 
