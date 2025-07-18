@@ -6,6 +6,25 @@
       class="list-row"
     >
       <div class="item-details-horizontal">
+        <div class="item-thumbnail">
+          <label v-if="editMode" class="thumbnail-upload-label">
+            <img
+              v-if="item.thumbnail"
+              :src="item.thumbnail.startsWith('data:') ? item.thumbnail : 'tauri://localhost/' + item.thumbnail"
+              class="thumbnail-img editable"
+              alt="Thumbnail"
+            />
+            <img v-else src="/src/assets/vue.svg" class="thumbnail-img editable" alt="No Thumbnail" />
+            <input type="file" accept="image/*" class="thumbnail-input" @change="e => handleThumbnailUpload(e, item)" />
+          </label>
+          <img
+            v-else-if="item.thumbnail"
+            :src="item.thumbnail.startsWith('data:') ? item.thumbnail : 'tauri://localhost/' + item.thumbnail"
+            class="thumbnail-img"
+            alt="Thumbnail"
+          />
+          <img v-else src="/src/assets/vue.svg" class="thumbnail-img" alt="No Thumbnail" />
+        </div>
         <template v-if="editMode">
           <input
             class="product-name-input name-flex"
@@ -41,10 +60,13 @@
             <span v-if="hasMoreTags(item.categories)" class="category-tag more">...</span>
           </template>
         </div>
-        <div v-if="item.barcode" class="barcode-display barcode-flex">
-          <div class="barcode-container">
-            <svg :id="`barcode-${item.id}`" class="barcode-svg"></svg>
-            <div class="barcode-text">{{ item.barcode }}</div>
+        <div class="barcode-display barcode-flex">
+          <div class="barcode-container no-barcode">
+            <template v-if="item.barcode">
+              <button class="show-barcode-btn" @click="openBarcodeModal(item)">
+                <svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="2" height="16"/><rect x="7" y="4" width="1" height="16"/><rect x="10" y="4" width="1" height="16"/><rect x="14" y="4" width="1" height="16"/><rect x="17" y="4" width="2" height="16"/></svg>
+              </button>
+            </template>
           </div>
         </div>
       </div>
@@ -65,6 +87,15 @@
       @close="closeAddCategoryModal"
       @select-category="handleSelectCategory"
     />
+    <Modal :isOpen="showBarcodeModal" title="Barcode" @close="closeBarcodeModal">
+      <div v-if="barcodeModalItem">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 1em; padding: 1em 0;">
+          <svg id="modal-barcode-svg" style="width: 320px; height: 80px;"></svg>
+          <div style="font-family: monospace; font-size: 1.2em; color: #333;">{{ barcodeModalItem.barcode }}</div>
+          <div style="font-size: 1em; color: #666;">{{ barcodeModalItem.displayname }}</div>
+        </div>
+      </div>
+    </Modal>
   </div>
 </template>
 
@@ -72,10 +103,21 @@
 import { onMounted, nextTick, watch, ref } from 'vue';
 import JsBarcode from 'jsbarcode';
 import AddCategoryModal from '../components/AddCategoryModal.vue';
+import Modal from './Modal.vue';
+import { appLocalDataDir } from '@tauri-apps/api/path';
+import { mkdir, exists, writeFile } from '@tauri-apps/plugin-fs'
 
+interface ItemType {
+  id: string;
+  displayname: string;
+  price: number;
+  categories: string[];
+  barcode?: string;
+  thumbnail?: string;
+}
 const props = defineProps({
   items: {
-    type: Array as () => Array<{ id: string; displayname: string; price: number; categories: string[]; barcode?: string }>,
+    type: Array as () => Array<ItemType>,
     default: () => [],
   },
   categories: {
@@ -181,6 +223,50 @@ function hasMoreTags(categories: string[]) {
 }
 
 const priceFormatter = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+const showBarcodeModal = ref(false);
+const barcodeModalItem = ref<any>(null);
+
+function openBarcodeModal(item: any) {
+  barcodeModalItem.value = item;
+  showBarcodeModal.value = true;
+  nextTick(() => {
+    if (item && item.barcode) {
+      JsBarcode(document.getElementById('modal-barcode-svg'), item.barcode, {
+        format: "CODE128",
+        width: 2,
+        height: 60,
+        displayValue: true,
+        background: "#fff",
+        lineColor: "#000",
+        margin: 8
+      });
+    }
+  });
+}
+function closeBarcodeModal() {
+  showBarcodeModal.value = false;
+  barcodeModalItem.value = null;
+}
+
+async function handleThumbnailUpload(event: Event, item: any) {
+  const input = event.target as HTMLInputElement;
+  if (!input.files || input.files.length === 0) return;
+  const file = input.files[0];
+  const arrayBuffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(arrayBuffer);
+  const ext = file.name.split('.').pop() || 'png';
+  const dir = await appLocalDataDir();
+  const thumbDir = `${dir}thumbnails`;
+  if (!(await exists(thumbDir))) {
+    await mkdir(thumbDir, { recursive: true });
+  }
+  const filename = `${item.id || crypto.randomUUID()}.${ext}`;
+  const filePath = `${thumbDir}/${filename}`;
+  await writeFile(filePath, bytes);
+  item.thumbnail = filePath;
+  emit('update-item', { ...item });
+}
 </script>
 
 <style scoped>
@@ -212,36 +298,39 @@ const priceFormatter = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2
   display: flex;
   align-items: center;
   flex: 1;
-  gap: 1.5vw;
+  gap: 0.5em;
   min-height: 3.5em;
 }
 .name-flex {
-  flex: 2;
-  min-width: 8em;
-  margin-right: 1em;
+  flex: 2 1 0;
+  margin-right: 0.5em;
   text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 18em;
 }
 .price-flex {
-  flex: 1;
-  min-width: 5em;
-  margin-right: 1em;
+  flex: 1 1 0;
+  margin-right: 0.5em;
   text-align: left;
+  min-width: 0;
 }
 .categories-flex {
-  flex: 2;
-  min-width: 8em;
+  flex: 2 1 0;
   display: flex;
-  gap: 0.5em;
+  gap: 0.3em;
+  min-width: 0;
 }
 .barcode-flex {
-  flex: 1;
-  min-width: 10em;
-  margin-right: 1em;
+  flex: 1 1 0;
+  margin-right: 0;
+  min-width: 0;
 }
 .item-actions {
   display: flex;
   align-items: center;
-  margin-left: auto;
+  margin-left: 1em;
   gap: 8px;
 }
 .item-categories {
@@ -272,10 +361,19 @@ const priceFormatter = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2
   flex-direction: column;
   align-items: center;
   gap: 2px;
+  min-width: 120px;
+  min-height: 43px;
+  box-sizing: border-box;
+}
+.barcode-container.no-barcode {
+  background: transparent;
+  border: none;
 }
 .barcode-svg {
   width: 100%;
   height: 35px;
+  min-width: 100px;
+  box-sizing: border-box;
 }
 .barcode-text {
   font-size: 0.6rem;
@@ -292,6 +390,10 @@ const priceFormatter = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2
   font-weight: 600;
   line-height: 1.2;
   text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 18em;
 }
 .product-price {
   font-size: clamp(1.1rem, 1.7vw, 1.8rem);
@@ -429,5 +531,54 @@ const priceFormatter = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2
 .cart-icon {
   display: inline-block;
   vertical-align: middle;
+}
+.barcode-svg.empty-barcode {
+  width: 100%;
+  height: 35px;
+  background: transparent;
+  display: block;
+  min-width: 100px;
+}
+.show-barcode-btn {
+  background: #fff;
+  border: 1px solid #bbb;
+  border-radius: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, border 0.2s;
+}
+.show-barcode-btn:hover {
+  background: #f0f0f0;
+  border-color: #888;
+}
+.item-thumbnail {
+  display: flex;
+  align-items: center;
+  margin-right: 0.7em;
+}
+.thumbnail-img {
+  width: 120px;
+  height: 70px;
+  object-fit: cover;
+  border-radius: 8px;
+  background: #CABDBD;
+  border: 1px solid #bbb;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  transition: box-shadow 0.2s;
+}
+.thumbnail-img.editable:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  cursor: pointer;
+}
+.thumbnail-upload-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+.thumbnail-input {
+  display: none;
 }
 </style>

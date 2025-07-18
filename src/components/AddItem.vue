@@ -108,6 +108,10 @@ function submit() {
     emit('error', 'Item price must be greater than 0.');
     return;
   }
+  if (!item.value.categories || item.value.categories.length === 0) {
+    emit('error', 'At least one category is required.');
+    return;
+  }
   emit('add', { ...item.value });
 }
 </script>

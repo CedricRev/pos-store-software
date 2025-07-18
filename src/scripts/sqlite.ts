@@ -1,6 +1,6 @@
 import Database from '@tauri-apps/plugin-sql';
 
-const DB_PATH = 'sqlite:pos-store-3.db';
+const DB_PATH = 'sqlite:pos-store-4.db';
 
 let dbPromise: Promise<any> | null = null;
 
@@ -26,7 +26,8 @@ export async function initDb() {
             displayname TEXT NOT NULL,
             price REAL NOT NULL,
             categories TEXT, -- JSON array of category ids
-            barcode TEXT UNIQUE -- Optional unique barcode
+            barcode TEXT UNIQUE, -- Optional unique barcode
+            thumbnail TEXT -- Path to thumbnail image
         )
     `);
 }
@@ -63,23 +64,24 @@ export async function getItems() {
     // Parse categories JSON
     return items.map((item: any) => ({
         ...item,
-        categories: item.categories ? JSON.parse(item.categories) : []
+        categories: item.categories ? JSON.parse(item.categories) : [],
+        thumbnail: item.thumbnail || null
     }));
 }
 
-export async function addItem(item: {id: string, displayname: string, price: number, categories: string[], barcode?: string}) {
+export async function addItem(item: {id: string, displayname: string, price: number, categories: string[], barcode?: string, thumbnail?: string}) {
     const db = await getDb();
     await db.execute(
-        `INSERT INTO items (id, displayname, price, categories, barcode) VALUES (?, ?, ?, ?, ?)`,
-        [item.id, item.displayname, item.price, JSON.stringify(item.categories), item.barcode || null]
+        `INSERT INTO items (id, displayname, price, categories, barcode, thumbnail) VALUES (?, ?, ?, ?, ?, ?)`,
+        [item.id, item.displayname, item.price, JSON.stringify(item.categories), item.barcode || null, item.thumbnail || null]
     );
 }
 
-export async function updateItem(item: {id: string, displayname: string, price: number, categories: string[], barcode?: string}) {
+export async function updateItem(item: {id: string, displayname: string, price: number, categories: string[], barcode?: string, thumbnail?: string}) {
     const db = await getDb();
     await db.execute(
-        `UPDATE items SET displayname = ?, price = ?, categories = ?, barcode = ? WHERE id = ?`,
-        [item.displayname, item.price, JSON.stringify(item.categories), item.barcode || null, item.id]
+        `UPDATE items SET displayname = ?, price = ?, categories = ?, barcode = ?, thumbnail = ? WHERE id = ?`,
+        [item.displayname, item.price, JSON.stringify(item.categories), item.barcode || null, item.thumbnail || null, item.id]
     );
 }
 
