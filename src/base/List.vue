@@ -50,7 +50,7 @@
       </div>
       <div class="item-actions">
         <button class="add-item-button" @click="openQuantityModal(item)" v-if="!editMode">
-          Add Item
+          <svg class="cart-icon" xmlns="http://www.w3.org/2000/svg" width="1.5em" height="1.5em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
         </button>
         <template v-if="editMode">
           <button class="delete-item-button" @click="$emit('delete-item', item)">Delete</button>
@@ -310,6 +310,9 @@ const priceFormatter = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2
   font-size: 0.9rem;
   transition: background-color 0.2s;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .add-item-button:hover {
@@ -421,5 +424,10 @@ const priceFormatter = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2
   color: #fff;
   font-weight: bold;
   pointer-events: none;
+}
+
+.cart-icon {
+  display: inline-block;
+  vertical-align: middle;
 }
 </style>

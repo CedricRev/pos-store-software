@@ -13,20 +13,18 @@
                     </button>
                 </div>
             </div>
-            <div class="categories-panel">
-                <button class="modal-button" @click="openCategoryFilter">Filter Categories</button>
+            <div class="categories-scroll-panel">
+                <span
+                  v-for="cat in categories"
+                  :key="cat.id"
+                  class="category-tag"
+                  :class="{ selected: selectedCategories.includes(cat.id) }"
+                >
+                  <span @click="toggleCategory(cat.id)">{{ cat.displayname }}</span>
+                  <button v-if="editMode" class="remove-cat-btn" @click.stop="deleteCategoryInline(cat)">×</button>
+                </span>
             </div>
         </div>
-
-        <CategoriesFilter
-            :is-open="isCategoryFilterOpen"
-            :categories="categories"
-            :selected-categories="selectedCategories"
-            :edit-mode="editMode"
-            @close="closeCategoryFilter"
-            @toggle-category="handleToggleCategory"
-            @clear-all="handleClearAllCategories"
-        />
 
         <List :items="filteredItems" :categories="categories" @open-quantity-modal="openQuantityModal" :edit-mode="editMode" 
               @update-item="updateItemInline" 
@@ -211,6 +209,8 @@ const filteredItems = computed(() => {
             item.displayname.toLowerCase().includes(query)
         );
     }
+    // Sort alphabetically by product name
+    filtered = filtered.slice().sort((a, b) => a.displayname.localeCompare(b.displayname));
     return filtered;
 });
 
@@ -256,20 +256,6 @@ function onAddCategory(category: { displayname: string }) {
     closeAddItemModal();
 }
 
-const isCategoryFilterOpen = ref(false);
-
-function openCategoryFilter() {
-    isCategoryFilterOpen.value = true;
-}
-function closeCategoryFilter() {
-    isCategoryFilterOpen.value = false;
-}
-function handleToggleCategory(categoryId: string) {
-    toggleCategory(categoryId);
-}
-function handleClearAllCategories() {
-    selectedCategories.value = [];
-}
 </script>
 
 <style scoped>
@@ -326,20 +312,41 @@ function handleClearAllCategories() {
     background-color: #5a5a5a;
 }
 
-.categories-panel {
+.categories-scroll-panel {
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 10px;
     width: 100%;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    scrollbar-width: thin;
+}
+.categories-scroll-panel::-webkit-scrollbar {
+    height: 6px;
+}
+.categories-scroll-panel::-webkit-scrollbar-thumb {
+    background: #bdbdbd;
+    border-radius: 3px;
+}
+.category-tag {
+    background-color: #4CAF50;
+    color: white;
+    padding: 6px 16px;
+    border-radius: 16px;
+    font-size: 1rem;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s, color 0.2s;
+    white-space: nowrap;
+}
+.category-tag.selected {
+    background-color: #1976D2;
+    color: #fff;
 }
 
 .categories {
     flex: 1;
     background-color: aqua;
-}
-
-.all-categories, .category-tag, .category-tag.selected, .category-tag.edit-mode, .category-name-input, .delete-category-btn, .add-category-btn {
-    display: none !important;
 }
 
 .modal-button {
@@ -671,6 +678,24 @@ function handleClearAllCategories() {
 }
 .add-category-btn:hover {
     background-color: #1976D2;
+}
+.remove-cat-btn {
+  background: #f44336;
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 1.5em;
+  height: 1.5em;
+  font-size: 1em;
+  margin-left: 0.5em;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+.remove-cat-btn:hover {
+  background: #d32f2f;
 }
 
 @media (max-width: 700px) {
