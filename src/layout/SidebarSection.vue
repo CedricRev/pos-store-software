@@ -1,13 +1,13 @@
 <template>
     <aside class="sidebar-section">
         <h1>RGJ Caravan RTW</h1>
-        <Logo />
+        <!-- <Logo /> -->
         <ListContainer />
     </aside>
 </template>
 
 <script setup>
-import Logo from "../components/Logo.vue";
+// import Logo from "../components/Logo.vue";
 import ListContainer from "../components/ListContainer.vue";
 </script>
 

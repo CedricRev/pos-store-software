@@ -26,9 +26,20 @@
           <span class="product-price price-flex">₱{{ item.price }}</span>
         </template>
         <div class="item-categories categories-flex">
-          <span v-for="catId in item.categories" :key="catId" class="category-tag">
-            {{ getCategoryName(catId) }}
-          </span>
+          <template v-if="editMode">
+            <span v-for="catId in visibleTags(item.categories)" :key="catId" class="category-tag editable">
+              {{ getCategoryName(catId) }}
+              <button class="remove-cat-btn" @click="removeCategory(item, catId)">×</button>
+            </span>
+            <span v-if="hasMoreTags(item.categories)" class="category-tag more">...</span>
+            <button class="add-cat-btn" @click="openAddCategoryModal(item)" v-if="categories.length > item.categories.length">+</button>
+          </template>
+          <template v-else>
+            <span v-for="catId in visibleTags(item.categories)" :key="catId" class="category-tag">
+              {{ getCategoryName(catId) }}
+            </span>
+            <span v-if="hasMoreTags(item.categories)" class="category-tag more">...</span>
+          </template>
         </div>
         <div v-if="item.barcode" class="barcode-display barcode-flex">
           <div class="barcode-container">
@@ -46,12 +57,21 @@
         </template>
       </div>
     </div>
+    <AddCategoryModal
+      :isOpen="addCategoryModalOpen"
+      :item="addCategoryItem"
+      :categories="categories"
+      :selectedCategories="addCategoryItem?.categories || []"
+      @close="closeAddCategoryModal"
+      @select-category="handleSelectCategory"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, nextTick, watch } from 'vue';
+import { onMounted, nextTick, watch, ref } from 'vue';
 import JsBarcode from 'jsbarcode';
+import AddCategoryModal from '../components/AddCategoryModal.vue';
 
 const props = defineProps({
   items: {
@@ -115,6 +135,50 @@ onMounted(async () => {
 watch(() => props.items, async () => {
   await generateAllBarcodes();
 }, { deep: true });
+
+// Track which item is currently showing the add category dropdown
+const addingCategoryFor = ref<string | null>(null);
+
+function removeCategory(item: any, catId: string) {
+  item.categories = item.categories.filter((id: string) => id !== catId);
+  emit('update-item', { ...item });
+}
+
+function addCategory(item: any, catId: string) {
+  if (!item.categories.includes(catId)) {
+    item.categories.push(catId);
+    emit('update-item', { ...item });
+  }
+  addingCategoryFor.value = null;
+}
+
+const addCategoryModalOpen = ref(false);
+const addCategoryItem = ref<any>(null);
+
+function openAddCategoryModal(item: any) {
+  addCategoryItem.value = item;
+  addCategoryModalOpen.value = true;
+}
+function closeAddCategoryModal() {
+  addCategoryModalOpen.value = false;
+  addCategoryItem.value = null;
+}
+function handleSelectCategory(catId: string) {
+  if (addCategoryItem.value && !addCategoryItem.value.categories.includes(catId)) {
+    addCategoryItem.value.categories.push(catId);
+    emit('update-item', { ...addCategoryItem.value });
+  }
+  closeAddCategoryModal();
+}
+
+const MAX_TAGS_DISPLAY = 1;
+
+function visibleTags(categories: string[]) {
+  return categories.slice(0, MAX_TAGS_DISPLAY);
+}
+function hasMoreTags(categories: string[]) {
+  return categories.length > MAX_TAGS_DISPLAY;
+}
 </script>
 
 <style scoped>
@@ -146,28 +210,31 @@ watch(() => props.items, async () => {
   display: flex;
   align-items: center;
   flex: 1;
-  gap: 0;
+  gap: 1.5vw;
+  min-height: 3.5em;
 }
 .name-flex {
   flex: 2;
-  min-width: 120px;
-  margin-right: 10px;
+  min-width: 8em;
+  margin-right: 1em;
+  text-align: left;
 }
 .price-flex {
   flex: 1;
-  min-width: 80px;
-  margin-right: 10px;
+  min-width: 5em;
+  margin-right: 1em;
+  text-align: left;
 }
 .categories-flex {
   flex: 2;
-  min-width: 120px;
+  min-width: 8em;
   display: flex;
-  gap: 6px;
+  gap: 0.5em;
 }
 .barcode-flex {
   flex: 1;
-  min-width: 150px;
-  margin-right: 10px;
+  min-width: 10em;
+  margin-right: 1em;
 }
 .item-actions {
   display: flex;
@@ -179,13 +246,16 @@ watch(() => props.items, async () => {
   display: flex;
   gap: 6px;
 }
-.category-tag {
+.category-tag,
+.category-tag.editable {
   background-color: #4CAF50;
   color: white;
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 0.8rem;
+  padding: 0.3em 1.2em;
+  border-radius: 1.5em;
+  font-size: clamp(1rem, 1.3vw, 1.3rem);
+  margin-right: 0.5em;
   display: inline-block;
+  font-weight: 500;
 }
 .barcode-display {
   display: flex;
@@ -215,14 +285,18 @@ watch(() => props.items, async () => {
   display: none;
 }
 .product-name {
-  font-size: 1.1em;
+  font-size: clamp(1.2rem, 2vw, 2.2rem);
   color: #333;
-  font-weight: 500;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: left;
 }
 .product-price {
-  font-size: 0.9em;
+  font-size: clamp(1.1rem, 1.7vw, 1.8rem);
   color: #275829;
-  font-weight: 600;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: left;
 }
 .add-item-button {
   padding: 8px 16px;
@@ -284,5 +358,66 @@ watch(() => props.items, async () => {
   border: 1px solid #ccc;
   border-radius: 4px;
   padding: 4px 8px;
+}
+.category-select, .category-add-select {
+  min-width: 8em;
+  padding: 0.5em 1em;
+  border-radius: 0.5em;
+  border: 1px solid #ccc;
+  font-size: clamp(1rem, 1.2vw, 1.2rem);
+  background: #fff;
+}
+.category-tag.editable {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background-color: #4CAF50;
+  color: white;
+  padding: 2px 8px 2px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  margin-right: 4px;
+}
+.remove-cat-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: clamp(1.1rem, 1.5vw, 1.5rem);
+  margin-left: 0.2em;
+  cursor: pointer;
+  padding: 0 0.2em;
+}
+.add-cat-btn {
+  background: #2196F3;
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: clamp(2em, 2.5vw, 2.5em);
+  height: clamp(2em, 2.5vw, 2.5em);
+  font-size: clamp(1.3rem, 2vw, 2rem);
+  cursor: pointer;
+  margin-left: 0.5em;
+  margin-right: 0.5em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.add-cat-btn:hover {
+  background: #1976D2;
+}
+.category-add-select {
+  min-width: 120px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid #2196F3;
+  font-size: 0.9rem;
+  background: #fff;
+  margin-left: 4px;
+}
+.category-tag.more {
+  background: #bbb;
+  color: #fff;
+  font-weight: bold;
+  pointer-events: none;
 }
 </style>
