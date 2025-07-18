@@ -4,7 +4,7 @@
       <div class="item-info">
         <div class="item-details">
           <h4>{{ item.displayname }}</h4>
-          <p class="price">₱{{ item.price }}</p>
+          <p class="price">₱{{ priceFormatter.format(item.price) }}</p>
         </div>
         <template v-if="editMode">
           <button class="edit-item-button" @click="$emit('edit-item', item)">Edit</button>
@@ -27,7 +27,7 @@
         </div>
       </div>
       <div class="total-preview">
-        <p>Total: ₱{{ (item.price * quantity).toFixed(2) }}</p>
+        <p>Total: ₱{{ priceFormatter.format(item.price * quantity) }}</p>
       </div>
       <div class="modal-actions">
         <button @click="$emit('close')" class="cancel-button">Cancel</button>
@@ -48,6 +48,8 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits(['close', 'add-to-cart', 'update:quantity', 'edit-item', 'delete-item']);
+
+const priceFormatter = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 function decrement() {
   if (props.quantity > 1) emit('update:quantity', props.quantity - 1);

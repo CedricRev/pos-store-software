@@ -23,7 +23,7 @@
         </template>
         <template v-else>
           <span class="product-name name-flex">{{ item.displayname }}</span>
-          <span class="product-price price-flex">₱{{ item.price }}</span>
+          <span class="product-price price-flex">₱{{ priceFormatter.format(item.price) }}</span>
         </template>
         <div class="item-categories categories-flex">
           <template v-if="editMode">
@@ -179,6 +179,8 @@ function visibleTags(categories: string[]) {
 function hasMoreTags(categories: string[]) {
   return categories.length > MAX_TAGS_DISPLAY;
 }
+
+const priceFormatter = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 </script>
 
 <style scoped>

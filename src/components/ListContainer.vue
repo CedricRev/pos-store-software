@@ -15,11 +15,11 @@
                     <div class="item-info">
                         <div class="item-details">
                             <span class="item-name">{{ cartItem.item.displayname }}</span>
-                            <span class="item-price">₱{{ cartItem.item.price }} x {{ cartItem.quantity }}</span>
+                            <span class="item-price">₱{{ priceFormatter.format(cartItem.item.price) }} x {{ cartItem.quantity }}</span>
                         </div>
                     </div>
                     <div class="item-total">
-                        ₱{{ (cartItem.item.price * cartItem.quantity).toFixed(2) }}
+                        ₱{{ priceFormatter.format(cartItem.item.price * cartItem.quantity) }}
                     </div>
                     <button @click="removeFromCart(index)" class="remove-btn">×</button>
                 </div>
@@ -27,7 +27,7 @@
         </div>
         <div class="total-order">
             <h3>Total Order:</h3>
-            <h3>₱{{ totalPrice.toFixed(2) }}</h3>
+            <h3>₱{{ priceFormatter.format(totalPrice) }}</h3>
         </div>
     </div>
     <Button color="primary" size="large" @click="placeOrder" :disabled="cartItems.length === 0">
@@ -56,6 +56,8 @@ const totalPrice = computed(() => {
         return total + (cartItem.item.price * cartItem.quantity);
     }, 0);
 });
+
+const priceFormatter = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const addToCart = (event: CustomEvent) => {
     const { item, quantity } = event.detail;
