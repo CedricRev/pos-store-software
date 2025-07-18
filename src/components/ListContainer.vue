@@ -107,7 +107,9 @@ onUnmounted(() => {
     width: 100%;
     height: 100%;
     padding: 10px;
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
 }
 
 .list-container h3 {
@@ -131,6 +133,10 @@ onUnmounted(() => {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: 300px;
+    overflow-y: auto;
 }
 
 .cart-item {

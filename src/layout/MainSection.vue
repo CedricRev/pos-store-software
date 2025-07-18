@@ -3,7 +3,7 @@
         <div class="header">
             <div class="header-row">
                 <div class="search-bar-container">
-                    <input type="text" class="search-bar" placeholder="Search for product..." v-model="searchQuery"/>
+                    <input type="text" class="search-bar" :class="{ searching: searchQuery }" placeholder="Search for product..." v-model="searchQuery"/>
                 </div>
                 <div class="edit-toggle-container">
                     <button v-if="editMode" class="modal-button add-item-btn" @click="openAddItemModal('item')">Add Item</button>
@@ -14,24 +14,19 @@
                 </div>
             </div>
             <div class="categories-panel">
-                <div class="categories"> 
-                    <div class="all-categories">
-                    <template v-for="category in categories" :key="category.id">
-                        <span v-if="!editMode"
-                            class="category-tag"
-                            :class="{ selected: selectedCategories.includes(category.id) }"
-                            @click="toggleCategory(category.id)">
-                        {{ category.displayname }}
-                        </span>
-                        <span v-else class="category-tag edit-mode">
-                        <input class="category-name-input" v-model="category.displayname" @change="updateCategoryInline(category)" />
-                        <button class="delete-category-btn" @click="deleteCategoryInline(category)">Delete</button>
-                        </span>
-                    </template>
-                    </div>
-                </div>
+                <button class="modal-button" @click="openCategoryFilter">Filter Categories</button>
             </div>
         </div>
+
+        <CategoriesFilter
+            :is-open="isCategoryFilterOpen"
+            :categories="categories"
+            :selected-categories="selectedCategories"
+            :edit-mode="editMode"
+            @close="closeCategoryFilter"
+            @toggle-category="handleToggleCategory"
+            @clear-all="handleClearAllCategories"
+        />
 
         <List :items="filteredItems" :categories="categories" @open-quantity-modal="openQuantityModal" :edit-mode="editMode" 
               @update-item="updateItemInline" 
@@ -73,6 +68,7 @@ import ItemToCart from '../components/ItemToCart.vue';
 import AddItem from '../components/AddItem.vue';
 import AddCategory from '../components/AddCategory.vue';
 import ErrorPopup from '../components/ErrorPopup.vue';
+import CategoriesFilter from '../components/CategoriesFilter.vue';
 // import { categories, items } from '../scripts/sampledb';
 import { getCategories, getItems, addItem, initDb, addCategory, deleteItem, addCategory as upsertCategory, deleteCategory } from '../scripts/sqlite';
 
@@ -259,6 +255,21 @@ function onAddCategory(category: { displayname: string }) {
     addCategory({ id, ...category }).then(refreshData);
     closeAddItemModal();
 }
+
+const isCategoryFilterOpen = ref(false);
+
+function openCategoryFilter() {
+    isCategoryFilterOpen.value = true;
+}
+function closeCategoryFilter() {
+    isCategoryFilterOpen.value = false;
+}
+function handleToggleCategory(categoryId: string) {
+    toggleCategory(categoryId);
+}
+function handleClearAllCategories() {
+    selectedCategories.value = [];
+}
 </script>
 
 <style scoped>
@@ -292,22 +303,28 @@ function onAddCategory(category: { displayname: string }) {
 }
 .search-bar {
     width: 100%;
-    padding: 8px 12px;
-    border-radius: 6px;
-    font-size: 1rem;
+    padding: 16px 20px;
+    border-radius: 8px;
+    font-size: 1.25rem;
     box-sizing: border-box;
     background-color: #797878;
     border: none;
+    color: #fff;
+    transition: box-shadow 0.2s, background 0.2s, color 0.2s;
+    height: 56px;
 }
 .search-bar::placeholder {
     color: #fff;
     opacity: 0.6;
 }
-
 .search-bar:focus {
     outline: none;
+    box-shadow: 0 0 0 2px #2196F3;
 }
-
+.search-bar.searching {
+    color: #fff;
+    background-color: #5a5a5a;
+}
 
 .categories-panel {
     display: flex;
@@ -319,6 +336,10 @@ function onAddCategory(category: { displayname: string }) {
 .categories {
     flex: 1;
     background-color: aqua;
+}
+
+.all-categories, .category-tag, .category-tag.selected, .category-tag.edit-mode, .category-name-input, .delete-category-btn, .add-category-btn {
+    display: none !important;
 }
 
 .modal-button {
@@ -592,14 +613,17 @@ function onAddCategory(category: { displayname: string }) {
     margin-left: auto;
 }
 .edit-toggle-btn {
-    padding: 8px 16px;
+    padding: 0 24px;
     background-color: #FFC107;
     color: #333;
     border: none;
     border-radius: 6px;
     cursor: pointer;
-    font-size: 1rem;
-    transition: background-color 0.2s;
+    font-size: 1.25rem;
+    transition: background-color 0.2s, color 0.2s;
+    height: 56px;
+    display: flex;
+    align-items: center;
 }
 .edit-toggle-btn.active {
     background-color: #FF9800;
@@ -647,5 +671,24 @@ function onAddCategory(category: { displayname: string }) {
 }
 .add-category-btn:hover {
     background-color: #1976D2;
+}
+
+@media (max-width: 700px) {
+    .header-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+    .search-bar-container, .edit-toggle-container {
+        width: 100%;
+        min-width: 0;
+    }
+    .edit-toggle-btn, .search-bar {
+        width: 100%;
+        min-width: 0;
+        font-size: 1rem;
+        height: 48px;
+        padding: 0 12px;
+    }
 }
 </style>
