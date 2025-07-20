@@ -67,7 +67,7 @@ import AddItem from '../components/AddItem.vue';
 import AddCategory from '../components/AddCategory.vue';
 import ErrorPopup from '../components/ErrorPopup.vue';
 // import { categories, items } from '../scripts/sampledb';
-import { getCategories, getItems, addItem, updateItem, initDb, addCategory, deleteItem, addCategory as upsertCategory, deleteCategory } from '../scripts/sqlite';
+import { getCategories, getItems, addItem, updateItem, initDb, addCategory, deleteItem, deleteCategory } from '../scripts/sqlite';
 
 const searchQuery = ref('');
 const isQuantityModalOpen = ref(false);
