@@ -231,11 +231,11 @@ async function deleteItemInline(item: any) {
     }
 }
 
-async function updateCategoryInline(category: any) {
-    // Use upsertCategory (addCategory) as update if no updateCategory exists
-    await upsertCategory(category);
-    await refreshData();
-}
+// async function updateCategoryInline(category: any) {
+//     // Use upsertCategory (addCategory) as update if no updateCategory exists
+//     await upsertCategory(category);
+//     await refreshData();
+// }
 async function deleteCategoryInline(category: any) {
     if (typeof deleteCategory === 'function') {
         await deleteCategory(category.id);
