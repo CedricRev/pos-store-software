@@ -7,19 +7,27 @@
     >
       <div class="item-details-horizontal">
         <div class="item-thumbnail">
-          <label v-if="editMode" class="thumbnail-upload-label">
+          <label v-if="editMode" class="thumbnail-upload-label" style="position: relative;">
             <img
-              v-if="item.thumbnail"
-              :src="item.thumbnail.startsWith('data:') ? item.thumbnail : 'tauri://localhost/' + item.thumbnail"
+              v-if="item.thumbnail && thumbnailCache[item.id]"
+              :src="thumbnailCache[item.id]"
               class="thumbnail-img editable"
               alt="Thumbnail"
             />
             <img v-else src="/src/assets/vue.svg" class="thumbnail-img editable" alt="No Thumbnail" />
+            <!-- Upload overlay icon -->
+            <div class="upload-overlay">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+            </div>
             <input type="file" accept="image/*" class="thumbnail-input" @change="e => handleThumbnailUpload(e, item)" />
           </label>
           <img
-            v-else-if="item.thumbnail"
-            :src="item.thumbnail.startsWith('data:') ? item.thumbnail : 'tauri://localhost/' + item.thumbnail"
+            v-else-if="item.thumbnail && thumbnailCache[item.id]"
+            :src="thumbnailCache[item.id]"
             class="thumbnail-img"
             alt="Thumbnail"
           />
@@ -104,8 +112,9 @@ import { onMounted, nextTick, watch, ref } from 'vue';
 import JsBarcode from 'jsbarcode';
 import AddCategoryModal from '../components/AddCategoryModal.vue';
 import Modal from './Modal.vue';
-import { appLocalDataDir } from '@tauri-apps/api/path';
+import { appLocalDataDir, join } from '@tauri-apps/api/path';
 import { mkdir, exists, writeFile } from '@tauri-apps/plugin-fs'
+import { invoke } from '@tauri-apps/api/core';
 
 interface ItemType {
   id: string;
@@ -213,13 +222,11 @@ function handleSelectCategory(catId: string) {
   closeAddCategoryModal();
 }
 
-const MAX_TAGS_DISPLAY = 1;
-
 function visibleTags(categories: string[]) {
-  return categories.slice(0, MAX_TAGS_DISPLAY);
+  return categories; // Show all categories
 }
 function hasMoreTags(categories: string[]) {
-  return categories.length > MAX_TAGS_DISPLAY;
+  return false; // Never show ellipsis
 }
 
 const priceFormatter = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -257,16 +264,40 @@ async function handleThumbnailUpload(event: Event, item: any) {
   const bytes = new Uint8Array(arrayBuffer);
   const ext = file.name.split('.').pop() || 'png';
   const dir = await appLocalDataDir();
-  const thumbDir = `${dir}thumbnails`;
+  const thumbDir = await join(dir, 'thumbnails');
   if (!(await exists(thumbDir))) {
     await mkdir(thumbDir, { recursive: true });
   }
   const filename = `${item.id || crypto.randomUUID()}.${ext}`;
-  const filePath = `${thumbDir}/${filename}`;
+  const filePath = await join(thumbDir, filename);
   await writeFile(filePath, bytes);
   item.thumbnail = filePath;
+  // Clear the cache for this item so it reloads
+  thumbnailCache.value[item.id] = '';
   emit('update-item', { ...item });
+  // Reload the new thumbnail immediately
+  await loadThumbnail(item);
 }
+
+const thumbnailCache = ref<Record<string, string>>({});
+
+async function loadThumbnail(item: any) {
+  if (!item.thumbnail) return;
+  if (thumbnailCache.value[item.id]) return; // Already loaded
+  try {
+    const base64 = await invoke<string>('load_image_as_base64', { path: item.thumbnail });
+    thumbnailCache.value[item.id] = base64;
+  } catch (e) {
+    thumbnailCache.value[item.id] = '';
+  }
+}
+
+onMounted(() => {
+  props.items.forEach(loadThumbnail);
+});
+watch(() => props.items, (newItems) => {
+  newItems.forEach(loadThumbnail);
+}, { deep: true });
 </script>
 
 <style scoped>
@@ -298,12 +329,12 @@ async function handleThumbnailUpload(event: Event, item: any) {
   display: flex;
   align-items: center;
   flex: 1;
-  gap: 0.5em;
+  gap: 1.2em;
   min-height: 3.5em;
 }
 .name-flex {
   flex: 2 1 0;
-  margin-right: 0.5em;
+  margin-right: 0.3em; /* Reduced from 0.7em to bring name and price closer */
   text-align: left;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -312,15 +343,21 @@ async function handleThumbnailUpload(event: Event, item: any) {
 }
 .price-flex {
   flex: 1 1 0;
-  margin-right: 0.5em;
+  margin-right: 0.7em;
   text-align: left;
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 13em; /* Increased from 10em to allow more space for thousands */
 }
 .categories-flex {
   flex: 2 1 0;
   display: flex;
-  gap: 0.3em;
+  gap: 0.5em;
   min-width: 0;
+  flex-wrap: wrap;
+  overflow: visible;
 }
 .barcode-flex {
   flex: 1 1 0;
@@ -330,8 +367,8 @@ async function handleThumbnailUpload(event: Event, item: any) {
 .item-actions {
   display: flex;
   align-items: center;
-  margin-left: 1em;
-  gap: 8px;
+  margin-left: 0;
+  gap: 4px;
 }
 .item-categories {
   display: flex;
@@ -343,7 +380,7 @@ async function handleThumbnailUpload(event: Event, item: any) {
   color: white;
   padding: 0.3em 1.2em;
   border-radius: 1.5em;
-  font-size: clamp(1rem, 1.3vw, 1.3rem);
+  font-size: clamp(0.75rem, 1vw, 1rem); /* Reduced to about 1/4 smaller */
   margin-right: 0.5em;
   display: inline-block;
   font-weight: 500;
@@ -393,14 +430,18 @@ async function handleThumbnailUpload(event: Event, item: any) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 18em;
+  max-width: 14em;
 }
 .product-price {
-  font-size: clamp(1.1rem, 1.7vw, 1.8rem);
+  font-size: clamp(1.2rem, 1.4vw, 1.8rem); /* Reduced from clamp(1.1rem, 1.7vw, 1.8rem) */
   color: #275829;
   font-weight: 700;
   line-height: 1.2;
   text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 14em;
 }
 .add-item-button {
   padding: 8px 16px;
@@ -482,7 +523,7 @@ async function handleThumbnailUpload(event: Event, item: any) {
   color: white;
   padding: 2px 8px 2px 8px;
   border-radius: 12px;
-  font-size: 0.8rem;
+  font-size: 0.6rem; /* Reduced to about 1/4 smaller */
   margin-right: 4px;
 }
 .remove-cat-btn {
@@ -522,10 +563,7 @@ async function handleThumbnailUpload(event: Event, item: any) {
   margin-left: 4px;
 }
 .category-tag.more {
-  background: #bbb;
-  color: #fff;
-  font-weight: bold;
-  pointer-events: none;
+  display: none;
 }
 
 .cart-icon {
@@ -549,6 +587,7 @@ async function handleThumbnailUpload(event: Event, item: any) {
   align-items: center;
   justify-content: center;
   transition: background 0.2s, border 0.2s;
+  margin-right: 2px;
 }
 .show-barcode-btn:hover {
   background: #f0f0f0;
@@ -557,7 +596,8 @@ async function handleThumbnailUpload(event: Event, item: any) {
 .item-thumbnail {
   display: flex;
   align-items: center;
-  margin-right: 0.7em;
+  margin-right: 1em;
+  flex-shrink: 0;
 }
 .thumbnail-img {
   width: 120px;
@@ -574,9 +614,31 @@ async function handleThumbnailUpload(event: Event, item: any) {
   cursor: pointer;
 }
 .thumbnail-upload-label {
+  position: relative;
+  width: 120px;
+  height: 70px;
   display: flex;
   align-items: center;
-  cursor: pointer;
+  justify-content: center;
+}
+.upload-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 120px;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.25);
+  opacity: 1;
+  pointer-events: none;
+}
+.upload-overlay svg {
+  color: #fff;
+  width: 48px;
+  height: 48px;
+  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.3));
 }
 .thumbnail-input {
   display: none;

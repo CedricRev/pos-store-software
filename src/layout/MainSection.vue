@@ -66,9 +66,8 @@ import ItemToCart from '../components/ItemToCart.vue';
 import AddItem from '../components/AddItem.vue';
 import AddCategory from '../components/AddCategory.vue';
 import ErrorPopup from '../components/ErrorPopup.vue';
-import CategoriesFilter from '../components/CategoriesFilter.vue';
 // import { categories, items } from '../scripts/sampledb';
-import { getCategories, getItems, addItem, initDb, addCategory, deleteItem, addCategory as upsertCategory, deleteCategory } from '../scripts/sqlite';
+import { getCategories, getItems, addItem, updateItem, initDb, addCategory, deleteItem, addCategory as upsertCategory, deleteCategory } from '../scripts/sqlite';
 
 const searchQuery = ref('');
 const isQuantityModalOpen = ref(false);
@@ -221,8 +220,7 @@ const filteredItems = computed(() => {
 // });
 
 async function updateItemInline(item: any) {
-    // If you have an updateItem function, use it. Otherwise, use addItem as an upsert.
-    await addItem(item);
+    await updateItem(item);
     await refreshData();
 }
 

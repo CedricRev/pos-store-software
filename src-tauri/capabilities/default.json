@@ -10,6 +10,26 @@
     "fs:default",
     "opener:default",
     "sql:default",
-    "sql:allow-execute"
+    "sql:allow-execute",
+    "fs:allow-write",
+    "fs:allow-write-file",
+    "fs:allow-read",
+    "fs:allow-read-file",
+    {
+      "identifier": "fs:allow-applocaldata-write",
+      "allow": [{ "path": "$APPLOCALDATA/*" }]
+    },
+    {
+      "identifier": "fs:allow-applocaldata-write-recursive",
+      "allow": [{ "path": "$APPLOCALDATA/*" }]
+    },
+    {
+      "identifier": "fs:allow-applocaldata-read",
+      "allow": [{ "path": "$APPLOCALDATA/*" }]
+    },
+    {
+      "identifier": "fs:allow-applocaldata-read-recursive",
+      "allow": [{ "path": "$APPLOCALDATA/*" }]
+    }
   ]
 }
