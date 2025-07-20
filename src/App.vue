@@ -2,11 +2,11 @@
 import MainSection from "./layout/MainSection.vue";
 import SidebarSection from "./layout/SidebarSection.vue";
 import { onMounted } from "vue";
-import { disable } from "@tauri-apps/plugin-autostart";
+import { enable } from "@tauri-apps/plugin-autostart";
 
 onMounted(async () => {
   try {
-    disable();
+    enable();
   } catch (e) {
     console.error('Failed to enable autostart:', e);
   }

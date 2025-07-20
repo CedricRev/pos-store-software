@@ -188,20 +188,20 @@ watch(() => props.items, async () => {
 }, { deep: true });
 
 // Track which item is currently showing the add category dropdown
-const addingCategoryFor = ref<string | null>(null);
+// const addingCategoryFor = ref<string | null>(null);
 
 function removeCategory(item: any, catId: string) {
   item.categories = item.categories.filter((id: string) => id !== catId);
   emit('update-item', { ...item });
 }
 
-function addCategory(item: any, catId: string) {
-  if (!item.categories.includes(catId)) {
-    item.categories.push(catId);
-    emit('update-item', { ...item });
-  }
-  addingCategoryFor.value = null;
-}
+// function addCategory(item: any, catId: string) {
+//   if (!item.categories.includes(catId)) {
+//     item.categories.push(catId);
+//     emit('update-item', { ...item });
+//   }
+//   addingCategoryFor.value = null;
+// }
 
 const addCategoryModalOpen = ref(false);
 const addCategoryItem = ref<any>(null);
@@ -226,6 +226,7 @@ function visibleTags(categories: string[]) {
   return categories; // Show all categories
 }
 function hasMoreTags(categories: string[]) {
+  console.log(categories);
   return false; // Never show ellipsis
 }
 
